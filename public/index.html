@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="en" ng-app="afmApp">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Airport Facilities – Maintenance</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/milligram/1.4.1/milligram.min.css">
+  <style>
+    .badge { display:inline-block; padding:2px 8px; border-radius:12px; font-size:12px }
+    .Open { background:#ffe7ba }
+    .In\ Progress { background:#bae7ff }
+    .Resolved { background:#d9f7be }
+    .Closed { background:#f0f0f0 }
+    .container { max-width: 980px }
+    .header { background:#2ecc71; color:#fff; padding:16px; border-radius:6px; margin:20px 0 }
+  </style>
+</head>
+<body ng-controller="MainCtrl as vm">
+  <main class="container">
+    <div class="header">
+      <h3>Airport Facilities – Maintenance Reporting & Tracking</h3>
+      <p>Report issues, track progress, and monitor facility health.</p>
+    </div>
+
+    <section ng-if="!vm.session.token">
+      <h4>Login</h4>
+      <form ng-submit="vm.login()">
+        <div class="row">
+          <div class="column">
+            <label>Email</label>
+            <input type="email" ng-model="vm.auth.email" required>
+          </div>
+          <div class="column">
+            <label>Password</label>
+            <input type="password" ng-model="vm.auth.password" required>
+          </div>
+        </div>
+        <div class="row">
+          <div class="column">
+            <label>Login as</label>
+            <select ng-model="vm.auth.role">
+              <option value="customer">Customer</option>
+              <option value="staff">Staff</option>
+            </select>
+          </div>
+        </div>
+        <button type="submit" class="button-primary">Login</button>
+        <button type="button" ng-click="vm.register()">Register</button>
+      </form>
+      <details>
+        <summary>Forgot password?</summary>
+        <form ng-submit="vm.requestReset()">
+          <label>Email</label>
+          <input type="email" ng-model="vm.resetEmail" required>
+          <button type="submit">Send reset link</button>
+        </form>
+      </details>
+      <hr>
+    </section>
+
+    <section ng-if="vm.session.token">
+      <p>Signed in as <strong>{{ vm.session.user.name || vm.session.user.email }}</strong> ({{ vm.session.user.role }})
+        <button class="button" ng-click="vm.logout()">Logout</button>
+      </p>
+    </section>
+
+    <section ng-if="vm.session.token">
+      <h4>Report an Issue</h4>
+      <form ng-submit="vm.submit()">
+        <div class="row">
+          <div class="column">
+            <label>Title</label>
+            <input type="text" ng-model="vm.form.title" placeholder="Short summary" required>
+          </div>
+          <div class="column">
+            <label>Location</label>
+            <input type="text" ng-model="vm.form.location" placeholder="e.g., Terminal 1 - Gate A3" required>
+          </div>
+        </div>
+        <div class="row">
+          <div class="column">
+            <label>Category</label>
+            <select ng-model="vm.form.category">
+              <option>Restroom</option>
+              <option>Elevator</option>
+              <option>Escalator</option>
+              <option>Seating</option>
+              <option>Cleaning</option>
+              <option>Electrical</option>
+              <option>Other</option>
+            </select>
+          </div>
+          <div class="column">
+            <label>Priority</label>
+            <select ng-model="vm.form.priority">
+              <option>Low</option>
+              <option>Medium</option>
+              <option>High</option>
+              <option>Critical</option>
+            </select>
+          </div>
+        </div>
+        <label>Description</label>
+        <textarea ng-model="vm.form.description" rows="3" placeholder="Add details..."></textarea>
+
+        <div class="row">
+          <div class="column">
+            <label>Your name</label>
+            <input type="text" ng-model="vm.form.reporterName" placeholder="Optional">
+          </div>
+          <div class="column">
+            <label>Contact</label>
+            <input type="text" ng-model="vm.form.reporterContact" placeholder="Optional">
+          </div>
+        </div>
+        <button type="submit" class="button-primary">Submit</button>
+        <button type="button" ng-click="vm.reset()">Reset</button>
+      </form>
+    </section>
+
+    <hr>
+
+    <section ng-if="vm.session.token">
+      <h4>Incidents
+        <small>
+          <span class="badge Open">Open {{ vm.counts.Open || 0 }}</span>
+          <span class="badge In Progress">In Progress {{ vm.counts['In Progress'] || 0 }}</span>
+          <span class="badge Resolved">Resolved {{ vm.counts.Resolved || 0 }}</span>
+        </small>
+      </h4>
+
+      <div class="row">
+        <div class="column">
+          <input type="text" placeholder="Search" ng-model="vm.filters.q" ng-change="vm.load()">
+        </div>
+        <div class="column">
+          <select ng-model="vm.filters.status" ng-change="vm.load()">
+            <option value="">All statuses</option>
+            <option>Open</option>
+            <option>In Progress</option>
+            <option>Resolved</option>
+            <option>Closed</option>
+          </select>
+        </div>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Location</th>
+            <th>Category</th>
+            <th>Priority</th>
+            <th>Status</th>
+            <th>Assigned</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr ng-repeat="it in vm.items">
+            <td>{{ it.title }}</td>
+            <td>{{ it.location }}</td>
+            <td>{{ it.category }}</td>
+            <td>{{ it.priority }}</td>
+            <td><span class="badge {{ it.status }}">{{ it.status }}</span></td>
+            <td>{{ it.assignedStaffId || '—' }}</td>
+            <td>
+              <select ng-model="it.status" ng-change="vm.update(it)" ng-disabled="vm.session.user.role!=='staff'">
+                <option>Open</option>
+                <option>In Progress</option>
+                <option>Resolved</option>
+                <option>Closed</option>
+              </select>
+              <button ng-if="vm.session.user.role==='staff' && !it.assignedStaffId" ng-click="vm.claim(it)">Claim</button>
+              <span ng-if="vm.session.user.role==='staff' && it.assignedStaffId===vm.session.user.staffId">(Mine)</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section ng-if="vm.session.token && vm.session.user.role==='staff'">
+      <h4>Staff Dashboard</h4>
+      <div class="row">
+        <div class="column">
+          <div class="badge Open">Open {{ vm.counts.Open || 0 }}</div>
+        </div>
+        <div class="column">
+          <div class="badge In Progress">In Progress {{ vm.counts['In Progress'] || 0 }}</div>
+        </div>
+        <div class="column">
+          <div class="badge Resolved">Resolved {{ vm.counts.Resolved || 0 }}</div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.3/angular.min.js"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.3/angular-route.min.js"></script>
+  <script>
+    (function(){
+      var app = angular.module('afmApp', ['ngRoute']);
+
+      var API_BASE = window.API_BASE || '';
+
+      app.config(function($routeProvider, $locationProvider){
+        $routeProvider
+          .when('/', { template: document.getElementById('tpl-home').innerHTML, controller: 'HomeCtrl', controllerAs: 'vm' })
+          .when('/login', { template: document.getElementById('tpl-login').innerHTML, controller: 'MainCtrl', controllerAs: 'vm' })
+          .when('/incidents', { template: document.getElementById('tpl-incidents').innerHTML, controller: 'HomeCtrl', controllerAs: 'vm' })
+          .otherwise('/');
+        $locationProvider.hashPrefix('');
+      });
+
+      app.controller('MainCtrl', function($http, $location) {
+        var vm = this;
+        vm.items = [];
+        vm.form = { priority: 'Medium', category: 'Other' };
+        vm.filters = {};
+        vm.counts = {};
+        vm.auth = { role: 'customer' };
+        vm.session = JSON.parse(localStorage.getItem('afm_session') || 'null') || { token: null, user: {} };
+
+        function authHeaders() {
+          return vm.session.token ? { Authorization: 'Bearer ' + vm.session.token } : {};
+        }
+
+        vm.reset = function(){ vm.form = { priority: 'Medium', category: 'Other' }; };
+
+        vm.submit = function(){
+          $http.post(API_BASE + '/api/incidents', vm.form, { headers: authHeaders() }).then(function(){
+            vm.reset();
+            vm.load();
+          }, onHttpError);
+        };
+
+        vm.update = function(item){
+          $http.put(API_BASE + '/api/incidents/' + item._id, item, { headers: authHeaders() }).then(function(){
+            vm.load();
+          }, onHttpError);
+        };
+
+        vm.load = function(){
+          if (!vm.session.token) return;
+          $http.get(API_BASE + '/api/incidents', { params: vm.filters, headers: authHeaders() }).then(function(res){
+            vm.items = res.data;
+            vm.counts = vm.items.reduce(function(acc, it){
+              acc[it.status] = (acc[it.status]||0) + 1; return acc;
+            }, {});
+          }, onHttpError);
+        };
+
+        vm.claim = function(item){
+          $http.post(API_BASE + '/api/incidents/' + item._id + '/claim', {}, { headers: authHeaders() }).then(function(res){
+            item.assignedStaffId = res.data.assignedStaffId;
+            item.status = res.data.status;
+          }, onHttpError);
+        };
+
+        vm.login = function(){
+          $http.post(API_BASE + '/api/auth/login', { email: vm.auth.email, password: vm.auth.password }).then(function(res){
+            vm.session = res.data;
+            localStorage.setItem('afm_session', JSON.stringify(vm.session));
+            vm.load();
+            $location.path('/incidents');
+          }, function(){ alert('Login failed'); });
+        };
+
+      
+        vm.register = function(){
+          $http.post(API_BASE + '/api/auth/register', { name: vm.auth.email, email: vm.auth.email, password: vm.auth.password, role: vm.auth.role }).then(function(res){
+            vm.session = res.data;
+            localStorage.setItem('afm_session', JSON.stringify(vm.session));
+            vm.load();
+            $location.path('/incidents');
+          }, function(){ alert('Register failed'); });
+        };
+
+        vm.requestReset = function(){
+          $http.post(API_BASE + '/api/auth/request-reset', { email: vm.resetEmail }).then(function(){
+            alert('If the email exists, a reset link has been sent. Check server logs for the link in dev.');
+          }, onHttpError);
+        };
+
+        // Handle hash routes for verify/reset
+        function handleHash(){
+          var hash = (window.location.hash || '').slice(1);
+          if (hash.indexOf('reset/') === 0){
+            var tokenR = hash.split('/')[1];
+            var newPass = prompt('Enter a new password');
+            if (newPass){
+              $http.post(API_BASE + '/api/auth/reset', { token: tokenR, password: newPass }).then(function(){
+                alert('Password reset. Please login.');
+                window.location.hash = '';
+              }, function(){ alert('Reset failed'); });
+            }
+          }
+        }
+        window.addEventListener('hashchange', handleHash);
+        handleHash();
+
+        vm.logout = function(){
+          vm.session = { token: null, user: {} };
+          localStorage.removeItem('afm_session');
+          $location.path('/login');
+        };
+
+        vm.load();
+      });
+
+      app.controller('HomeCtrl', function($http){
+        // Placeholder reused controller; MainCtrl owns logic. Kept for route structure.
+      });
+
+      function onHttpError(err){
+        console.error('API error', err);
+        alert((err && err.data && err.data.message) || 'Request failed');
+      }
+    })();
+  </script>
+
+  <!-- Simple templating for SPA routes -->
+  <script type="text/ng-template" id="tpl-home">
+    <p>Welcome to Airport Facilities Maintenance. Use the navigation or go to Incidents.</p>
+  </script>
+  <script type="text/ng-template" id="tpl-login">
+    <div ng-include="''"></div><!-- Login handled by visible section above -->
+  </script>
+  <script type="text/ng-template" id="tpl-incidents">
+    <div ng-include="''"></div><!-- Incidents handled by visible sections above -->
+  </script>
+</body>
+</html>
+
+
