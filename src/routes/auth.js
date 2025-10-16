@@ -16,7 +16,7 @@ function signToken(user) {
 // Register
 router.post('/register', async (req, res) => {
   try {
-    const { name, email, password, role } = req.body;
+    const { name, email, password, role, department, phone } = req.body;
     const exists = await User.findOne({ email });
     if (exists) return res.status(409).json({ message: 'Email already registered' });
     const passwordHash = await User.hashPassword(password);
@@ -25,7 +25,7 @@ router.post('/register', async (req, res) => {
       const rnd = Math.random().toString(36).slice(2, 8).toUpperCase();
       staffId = 'STF-' + rnd;
     }
-    const user = await User.create({ name, email, passwordHash, role: role === 'staff' ? 'staff' : 'customer', staffId });
+    const user = await User.create({ name, email, passwordHash, role: role === 'staff' ? 'staff' : 'passenger', staffId, department, phone });
     const token = signToken(user);
     res.status(201).json({ token, user: { id: user._id, name: user.name, email: user.email, role: user.role, staffId: user.staffId } });
   } catch (err) {

@@ -1,0 +1,119 @@
+<div class="sos-container">
+  <div class="sos-header">
+    <button class="back-btn" (click)="goBack()">← Back to Login</button>
+    <h1>🚨 Emergency SOS Portal</h1>
+    <p class="sos-subtitle">For immediate assistance with medical, security, or safety emergencies</p>
+  </div>
+
+  <div *ngIf="!isSubmitted" class="sos-form-container">
+    <div class="emergency-notice">
+      <h2>⚠️ Emergency Notice</h2>
+      <p>This portal is for <strong>URGENT EMERGENCIES ONLY</strong>. All reports will be immediately escalated to the appropriate emergency response teams.</p>
+    </div>
+
+    <form [formGroup]="sosForm" (ngSubmit)="onSubmit()" class="sos-form">
+      <div class="form-row">
+        <div class="form-group">
+          <label for="reporterName">Your Name *</label>
+          <input 
+            type="text" 
+            id="reporterName" 
+            formControlName="reporterName" 
+            placeholder="Enter your full name">
+          <div class="error" *ngIf="sosForm.get('reporterName')?.invalid && sosForm.get('reporterName')?.touched">
+            Your name is required
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="reporterContact">Contact Number *</label>
+          <input 
+            type="tel" 
+            id="reporterContact" 
+            formControlName="reporterContact" 
+            placeholder="Enter your phone number">
+          <div class="error" *ngIf="sosForm.get('reporterContact')?.invalid && sosForm.get('reporterContact')?.touched">
+            Valid phone number is required
+          </div>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="title">Emergency Type *</label>
+          <input 
+            type="text" 
+            id="title" 
+            formControlName="title" 
+            placeholder="Brief description of the emergency">
+          <div class="error" *ngIf="sosForm.get('title')?.invalid && sosForm.get('title')?.touched">
+            Emergency type is required
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="location">Location *</label>
+          <input 
+            type="text" 
+            id="location" 
+            formControlName="location" 
+            placeholder="Where is the emergency occurring?">
+          <div class="error" *ngIf="sosForm.get('location')?.invalid && sosForm.get('location')?.touched">
+            Location is required
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="subCategory">Emergency Category *</label>
+        <select id="subCategory" formControlName="subCategory">
+          <option value="">Select Emergency Type</option>
+          <option value="Emergency - First aid needed">🚑 Medical Emergency - First Aid Needed</option>
+          <option value="Emergency - Medical assistance">🏥 Medical Emergency - Professional Assistance</option>
+          <option value="Harassment incident">🚨 Security - Harassment Incident</option>
+          <option value="Fraud investigation">🔍 Security - Fraud Investigation</option>
+          <option value="Missing items">📦 Security - Missing Items</option>
+          <option value="Other emergency">⚠️ Other Emergency</option>
+        </select>
+        <div class="error" *ngIf="sosForm.get('subCategory')?.invalid && sosForm.get('subCategory')?.touched">
+          Emergency category is required
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="description">Emergency Details *</label>
+        <textarea 
+          id="description" 
+          formControlName="description" 
+          rows="4" 
+          placeholder="Provide detailed information about the emergency...">
+        </textarea>
+        <div class="error" *ngIf="sosForm.get('description')?.invalid && sosForm.get('description')?.touched">
+          Detailed description is required
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="sos-submit-btn" [disabled]="sosForm.invalid || isLoading">
+          <span *ngIf="isLoading">🚨 Submitting Emergency Request...</span>
+          <span *ngIf="!isLoading">🚨 Submit Emergency Request</span>
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <div *ngIf="isSubmitted" class="success-container">
+    <div class="success-message">
+      <div class="success-icon">✅</div>
+      <h2>Emergency Request Submitted!</h2>
+      <p>Your emergency request has been submitted and will be immediately forwarded to the appropriate emergency response teams.</p>
+      <div class="emergency-contacts">
+        <h3>Emergency Contacts:</h3>
+        <ul>
+          <li>🚨 Airport Security: <strong>+1-XXX-XXX-XXXX</strong></li>
+          <li>🚑 Medical Emergency: <strong>+1-XXX-XXX-XXXX</strong></li>
+          <li>🆘 General Emergency: <strong>+1-XXX-XXX-XXXX</strong></li>
+        </ul>
+      </div>
+      <p class="redirect-notice">You will be redirected to the login page in a few seconds...</p>
+    </div>
+  </div>
+</div>

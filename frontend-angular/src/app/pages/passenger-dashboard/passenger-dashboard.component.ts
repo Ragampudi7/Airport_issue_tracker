@@ -1,21 +1,20 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { AuthService, User } from '../../core/auth.service';
 import { IncidentsService, Incident } from '../../core/incidents.service';
 
 @Component({
-  selector: 'app-staff-dashboard',
+  selector: 'app-passenger-dashboard',
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule],
-  templateUrl: './staff-dashboard.component.html',
-  styleUrl: './staff-dashboard.component.scss'
+  templateUrl: './passenger-dashboard.component.html',
+  styleUrl: './passenger-dashboard.component.scss'
 })
-export class StaffDashboardComponent implements OnInit {
+export class PassengerDashboardComponent implements OnInit {
   currentUser: User | null = null;
-  incidents: Incident[] = [];
   redIncidents: Incident[] = [];
-  yellowIncidents: Incident[] = [];
   greenIncidents: Incident[] = [];
   categories: any = {};
   
@@ -24,12 +23,11 @@ export class StaffDashboardComponent implements OnInit {
   showReportForm = false;
   
   reportForm: FormGroup;
-  resolutionForm: FormGroup;
-  selectedIncident: Incident | null = null;
 
   constructor(
     private authService: AuthService,
     private incidentsService: IncidentsService,
+    private router: Router,
     private fb: FormBuilder
   ) {
     this.reportForm = this.fb.group({
@@ -39,10 +37,6 @@ export class StaffDashboardComponent implements OnInit {
       sector: ['', [Validators.required]],
       subCategory: ['', [Validators.required]],
       priority: ['medium', [Validators.required]]
-    });
-
-    this.resolutionForm = this.fb.group({
-      resolutionNotes: ['', [Validators.required]]
     });
   }
 
@@ -56,8 +50,8 @@ export class StaffDashboardComponent implements OnInit {
     this.isLoading = true;
     this.incidentsService.getIncidents().subscribe({
       next: (incidents) => {
-        this.incidents = incidents;
-        this.categorizeIncidents();
+        this.redIncidents = incidents.filter(incident => incident.status === 'red');
+        this.greenIncidents = incidents.filter(incident => incident.status === 'green');
         this.isLoading = false;
       },
       error: (error) => {
@@ -78,16 +72,9 @@ export class StaffDashboardComponent implements OnInit {
     });
   }
 
-  categorizeIncidents() {
-    this.redIncidents = this.incidents.filter(incident => incident.status === 'red');
-    this.yellowIncidents = this.incidents.filter(incident => incident.status === 'yellow');
-    this.greenIncidents = this.incidents.filter(incident => incident.status === 'green');
-  }
-
   toggleMode() {
     this.isReportingMode = !this.isReportingMode;
     this.showReportForm = false;
-    this.selectedIncident = null;
   }
 
   toggleReportForm() {
@@ -119,53 +106,12 @@ export class StaffDashboardComponent implements OnInit {
     }
   }
 
-  claimIncident(incident: Incident) {
-    this.isLoading = true;
-    this.incidentsService.claimIncident(incident._id).subscribe({
-      next: () => {
-        this.loadIncidents();
-        this.isLoading = false;
-      },
-      error: (error) => {
-        console.error('Error claiming incident:', error);
-        this.isLoading = false;
-      }
-    });
-  }
-
-  resolveIncident(incident: Incident) {
-    this.selectedIncident = incident;
-    this.resolutionForm.reset();
-  }
-
-  onSubmitResolution() {
-    if (this.resolutionForm.valid && this.selectedIncident) {
-      this.isLoading = true;
-      const resolutionNotes = this.resolutionForm.get('resolutionNotes')?.value;
-      
-      this.incidentsService.resolveIncident(this.selectedIncident._id, resolutionNotes).subscribe({
-        next: () => {
-          this.loadIncidents();
-          this.selectedIncident = null;
-          this.resolutionForm.reset();
-          this.isLoading = false;
-        },
-        error: (error) => {
-          console.error('Error resolving incident:', error);
-          this.isLoading = false;
-        }
-      });
-    }
-  }
-
-  cancelResolution() {
-    this.selectedIncident = null;
-    this.resolutionForm.reset();
+  goToSosPortal() {
+    this.router.navigate(['/sos-portal']);
   }
 
   getPriorityClass(priority: string): string {
     switch (priority) {
-      case 'sos': return 'priority-sos';
       case 'critical': return 'priority-critical';
       case 'high': return 'priority-high';
       case 'medium': return 'priority-medium';
@@ -176,19 +122,6 @@ export class StaffDashboardComponent implements OnInit {
 
   getPriorityLabel(priority: string): string {
     return priority.toUpperCase();
-  }
-
-  getStatusClass(status: string): string {
-    return `status-${status}`;
-  }
-
-  getStatusLabel(status: string): string {
-    switch (status) {
-      case 'red': return 'New';
-      case 'yellow': return 'In Progress';
-      case 'green': return 'Resolved';
-      default: return status;
-    }
   }
 
   formatDate(date: Date): string {

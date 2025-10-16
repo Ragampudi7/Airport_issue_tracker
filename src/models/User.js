@@ -8,8 +8,10 @@ const UserSchema = new mongoose.Schema(
     name: { type: String, trim: true },
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
     passwordHash: { type: String, required: true },
-    role: { type: String, enum: ['customer', 'staff'], default: 'customer', index: true },
+    role: { type: String, enum: ['passenger', 'staff'], default: 'passenger', index: true },
     staffId: { type: String, trim: true },
+    department: { type: String, enum: ['cabin_crew', 'sanitation', 'security', 'maintenance'], trim: true },
+    phone: { type: String, trim: true },
     resetToken: { type: String },
     resetTokenExpiresAt: { type: Date }
   },

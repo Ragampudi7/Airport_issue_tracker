@@ -1,6 +1,6 @@
 <div class="dashboard-container">
   <div class="dashboard-header">
-    <h1>Staff Dashboard</h1>
+    <h1>Passenger Dashboard</h1>
     <div class="mode-toggle">
       <button 
         class="mode-btn" 
@@ -12,17 +12,25 @@
         class="mode-btn" 
         [class.active]="!isReportingMode" 
         (click)="toggleMode()">
-        🔧 Resolve Issues
+        📋 View Reports
       </button>
     </div>
+  </div>
+
+  <!-- Emergency SOS Button -->
+  <div class="sos-section">
+    <button class="sos-btn" (click)="goToSosPortal()">
+      🚨 Emergency SOS Portal
+    </button>
+    <p class="sos-description">For urgent medical, security, or safety issues</p>
   </div>
 
   <!-- Reporting Mode -->
   <div *ngIf="isReportingMode" class="reporting-section">
     <div class="section-header">
-      <h2>Report New Issue</h2>
+      <h2>Report an Issue</h2>
       <button class="btn btn-primary" (click)="toggleReportForm()">
-        {{ showReportForm ? 'Cancel' : '+ New Issue' }}
+        {{ showReportForm ? 'Cancel' : '+ Report Issue' }}
       </button>
     </div>
 
@@ -49,12 +57,8 @@
           <label for="sector">Sector</label>
           <select id="sector" formControlName="sector" (change)="onSectorChange()">
             <option value="">Select Sector</option>
-            <option value="cabin_crew">Cabin Crew</option>
-            <option value="sanitation">Sanitation</option>
-            <option value="security">Security</option>
-            <option value="passenger_boarding">Passenger Boarding</option>
-            <option value="passenger_arrivals">Passenger Arrivals</option>
-            <option value="sos_portal">SOS Portal</option>
+            <option value="passenger_boarding">Boarding</option>
+            <option value="passenger_arrivals">Arrivals</option>
           </select>
           <div class="error" *ngIf="reportForm.get('sector')?.invalid && reportForm.get('sector')?.touched">
             Sector is required
@@ -78,7 +82,6 @@
             <option value="low">Low</option>
             <option value="medium">Medium</option>
             <option value="high">High</option>
-            <option value="critical">Critical</option>
           </select>
         </div>
       </div>
@@ -105,13 +108,13 @@
     </form>
   </div>
 
-  <!-- Resolution Mode -->
-  <div *ngIf="!isReportingMode" class="resolution-section">
-    <div class="kanban-board">
-      <!-- Red Column - New Issues -->
-      <div class="kanban-column status-red">
+  <!-- View Reports Mode -->
+  <div *ngIf="!isReportingMode" class="reports-section">
+    <div class="reports-grid">
+      <!-- Red Column - Reported Issues -->
+      <div class="reports-column red-column">
         <div class="column-header">
-          <h3>🔴 New Issues ({{ redIncidents.length }})</h3>
+          <h3>🔴 My Reported Issues ({{ redIncidents.length }})</h3>
         </div>
         <div class="incidents-list">
           <div *ngFor="let incident of redIncidents" class="incident-card">
@@ -128,43 +131,17 @@
               <span class="incident-sector">{{ incident.sector.replace('_', ' ') }}</span>
               <span class="incident-category">{{ incident.subCategory }}</span>
             </div>
-            <button class="btn btn-primary claim-btn" (click)="claimIncident(incident)" [disabled]="isLoading">
-              Take Up Issue
-            </button>
+            <div class="status-info">
+              <span class="status-badge status-red">Under Review</span>
+            </div>
           </div>
         </div>
       </div>
 
-      <!-- Yellow Column - In Progress -->
-      <div class="kanban-column status-yellow">
+      <!-- Green Column - Resolved Issues -->
+      <div class="reports-column green-column">
         <div class="column-header">
-          <h3>🟡 In Progress ({{ yellowIncidents.length }})</h3>
-        </div>
-        <div class="incidents-list">
-          <div *ngFor="let incident of yellowIncidents" class="incident-card">
-            <div class="incident-header">
-              <span class="priority-badge" [ngClass]="getPriorityClass(incident.priority)">
-                {{ getPriorityLabel(incident.priority) }}
-              </span>
-              <span class="incident-time">{{ formatDate(incident.createdAt) }}</span>
-            </div>
-            <h4 class="incident-title">{{ incident.title }}</h4>
-            <p class="incident-location">📍 {{ incident.location }}</p>
-            <p class="incident-description">{{ incident.description }}</p>
-            <div class="incident-meta">
-              <span class="incident-assigned">Assigned to: {{ incident.assignedStaffName }}</span>
-            </div>
-            <button class="btn btn-success resolve-btn" (click)="resolveIncident(incident)" [disabled]="isLoading">
-              Mark Resolved
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Green Column - Resolved -->
-      <div class="kanban-column status-green">
-        <div class="column-header">
-          <h3>🟢 Resolved ({{ greenIncidents.length }})</h3>
+          <h3>🟢 Resolved Issues ({{ greenIncidents.length }})</h3>
         </div>
         <div class="incidents-list">
           <div *ngFor="let incident of greenIncidents" class="incident-card resolved">
@@ -178,50 +155,17 @@
             <p class="incident-location">📍 {{ incident.location }}</p>
             <p class="incident-description">{{ incident.description }}</p>
             <div class="incident-meta">
-              <span class="incident-resolved">Resolved by: {{ incident.assignedStaffName }}</span>
+              <span class="incident-sector">{{ incident.sector.replace('_', ' ') }}</span>
+              <span class="incident-category">{{ incident.subCategory }}</span>
+            </div>
+            <div class="status-info">
+              <span class="status-badge status-green">Resolved</span>
             </div>
             <div class="resolution-notes" *ngIf="incident.resolutionNotes">
               <strong>Resolution:</strong> {{ incident.resolutionNotes }}
             </div>
           </div>
         </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Resolution Modal -->
-  <div *ngIf="selectedIncident" class="modal-overlay" (click)="cancelResolution()">
-    <div class="modal-content" (click)="$event.stopPropagation()">
-      <div class="modal-header">
-        <h3>Resolve Issue</h3>
-        <button class="close-btn" (click)="cancelResolution()">×</button>
-      </div>
-      <div class="modal-body">
-        <h4>{{ selectedIncident.title }}</h4>
-        <p><strong>Location:</strong> {{ selectedIncident.location }}</p>
-        <p><strong>Description:</strong> {{ selectedIncident.description }}</p>
-        
-        <form [formGroup]="resolutionForm" (ngSubmit)="onSubmitResolution()">
-          <div class="form-group">
-            <label for="resolutionNotes">Resolution Notes</label>
-            <textarea 
-              id="resolutionNotes" 
-              formControlName="resolutionNotes" 
-              rows="4" 
-              placeholder="Describe how the issue was resolved...">
-            </textarea>
-            <div class="error" *ngIf="resolutionForm.get('resolutionNotes')?.invalid && resolutionForm.get('resolutionNotes')?.touched">
-              Resolution notes are required
-            </div>
-          </div>
-          
-          <div class="modal-actions">
-            <button type="button" class="btn btn-outline" (click)="cancelResolution()">Cancel</button>
-            <button type="submit" class="btn btn-success" [disabled]="resolutionForm.invalid || isLoading">
-              {{ isLoading ? 'Resolving...' : 'Mark as Resolved' }}
-            </button>
-          </div>
-        </form>
       </div>
     </div>
   </div>
